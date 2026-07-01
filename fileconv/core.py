@@ -84,6 +84,9 @@ def converter(
     return decorator
 
 
+from . import converters as _builtin_converters  # noqa: F401,E402
+
+
 class ConversionManager:
     def __init__(self, registry: ConverterRegistry | None = None) -> None:
         self.registry = registry or REGISTRY
