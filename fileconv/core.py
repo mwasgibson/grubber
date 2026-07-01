@@ -175,7 +175,7 @@ class ConversionManager:
                         }
                     )
 
-            return results
+    return results
 
     def _expand_input(self, input_item: Path, *, recursive: bool) -> list[Path]:
         if input_item.is_file():
