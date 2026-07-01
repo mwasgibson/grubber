@@ -17,6 +17,9 @@ dependencies = [
 dev = [
   "pytest>=8.0"
 ]
+test = [
+  "pytest>=8.0"
+]
 
 [project.scripts]
 fileconv = "fileconv.cli:app"
