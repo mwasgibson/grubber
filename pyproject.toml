@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fileconv"
+version = "0.1.0"
+description = "Extensible local file converter with plugin registry"
+requires-python = ">=3.11"
+dependencies = [
+  "typer>=0.12",
+  "python-magic>=0.4.27"
+]
+
+[project.scripts]
+fileconv = "fileconv.cli:app"
+
+[project.entry-points."fileconv.converters"]
+# Third-party plugins can register here.

@@ -1,0 +1,112 @@
+# FileConv Worklog
+
+## 2026-07-01
+### Goal
+Build a local, cross-platform, universal file converter for personal use.
+
+### Design decisions
+- Use a Python plugin + registry architecture.
+- Keep a small core and add converters as plugins.
+- Support lazy plugin loading through Python entry points.
+- Start with LibreOffice for office-document conversions.
+
+### What was added
+- Project skeleton.
+- Core registry and conversion manager design.
+- CLI entry point.
+- LibreOffice converter plugin.
+- Test scaffold.
+
+### Notes
+- Third-party plugins will register under the `fileconv.converters` entry-point group.
+- Built-in converters self-register via the decorator.
+- Future plugins can be added without changing the core.
+
+## 2026-07-01 - Doctor command upgrade
+### Goal
+Add real dependency checks for the local conversion environment.
+
+### What will change
+- `doctor()` will verify installed binaries like `libreoffice` and `soffice`.
+- `doctor()` will report the Python package environment.
+- `doctor()` will show registered converters.
+- `doctor()` will produce a clear pass/fail summary.
+
+### Reason
+We need a reliable way to confirm the machine can run conversions before trying to convert files.
+
+## 2026-07-01 - Doctor dependency check
+### What changed
+- Added real binary detection for LibreOffice, ffmpeg, and magick.
+- Added a structured doctor report.
+- Added an overall status flag.
+
+### Impact
+- The app can now verify whether the local machine is ready for conversions before any file is processed.
+
+## 2026-07-01 - Format detection helper
+### Goal
+Improve input format detection so converters are chosen more reliably.
+
+### What will change
+- Add a dedicated `detect_format()` helper.
+- Use file extension detection first as a fallback.
+- Use `python-magic` when available for content-based MIME detection.
+- Return a structured result with mime type, extension, and confidence/source.
+
+### Why
+Registry lookup is cleaner when format detection is centralized instead of duplicated in the manager.
+
+## 2026-07-01 - Format detection helper
+### What changed
+- Added `detect_format()` to centralize format detection.
+- Used `python-magic` when available.
+- Kept extension fallback for portability.
+- Improved doctor output to show detection capability.
+
+## 2026-07-01 - ImageConverter design
+### Goal
+Add an image format conversion plugin for raster formats like PNG, JPG, WebP, BMP, and GIF.
+
+### Design decisions
+- Use Pillow as the conversion engine.
+- Keep the plugin interface aligned with the registry contract.
+- Convert via `Image.open()` and `Image.save()`.
+- Add explicit handling for mode conversion, transparency, and multi-frame images later.
+
+### Scope
+- Start with single-frame raster conversions.
+- Keep PDFs, SVGs, and vector workflows out of this plugin for now.
+
+## 2026-07-01 - ImageConverter implementation
+### What changed
+- Added a Pillow-based image conversion plugin.
+- Supported raster inputs include PNG, JPG, WebP, BMP, GIF, and TIFF.
+- Added output handling for JPEG alpha flattening.
+- Added optional save parameters like quality and optimize.
+
+### Notes
+- This plugin only handles raster image format conversion.
+- Animated and multi-frame edge cases are not fully handled yet.
+
+## 2026-07-01 - Batch CLI for images
+### What changed
+- Added folder-based batch conversion support.
+- Added recursive file discovery.
+- Added per-file conversion results and summary output.
+- Designed the batch flow so each file converts independently.
+
+### Notes
+- Default behavior is safe and non-destructive.
+- Batch mode should continue past failures unless fail-fast is requested.
+
+## 2026-07-01 - Batch image CLI
+### What changed
+- Added a batch command for folder-based conversion.
+- Added recursive scanning support.
+- Added per-file result reporting.
+- Added a summary count for ok/skipped/failed files.
+
+### Notes
+- Batch mode is folder-friendly and suitable for image collections.
+- Future improvement: add filtering by allowed extensions and optional progress bars.
