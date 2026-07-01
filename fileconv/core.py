@@ -83,10 +83,6 @@ def converter(
 
     return decorator
 
-
-from . import converters as _builtin_converters  # noqa: F401,E402
-
-
 class ConversionManager:
     def __init__(self, registry: ConverterRegistry | None = None) -> None:
         self.registry = registry or REGISTRY
@@ -220,7 +216,7 @@ class ConversionManager:
             },
             "format_detection": {
                 "ok": True,
-                "magic_available": _magic_available(),
+                "magic_available": self._magic_available(),
                 "strategy": "magic-first, extension-fallback",
             },
             "binaries": {
@@ -253,6 +249,7 @@ class ConversionManager:
         suffix = output_format.lower().lstrip(".")
         return _EXT_TO_MIME.get(suffix, f"application/{suffix}")
 
+    @staticmethod
     def _magic_available() -> bool:
         try:
             import magic  # noqa: F401
