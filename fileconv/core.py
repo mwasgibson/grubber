@@ -126,10 +126,10 @@ class ConversionManager:
         overwrite: bool = False,
         options: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
-            results: list[dict[str, Any]] = []
-    options = options or {}
+        results: list[dict[str, Any]] = []
+        options = options or {}
 
-    for input_item in inputs:
+        for input_item in inputs:
             for source in self._expand_input(input_item, recursive=recursive):
                 try:
                     output_path = self._build_batch_output_path(
@@ -175,7 +175,7 @@ class ConversionManager:
                         }
                     )
 
-            return results
+        return results
 
     def _expand_input(self, input_item: Path, *, recursive: bool) -> list[Path]:
         if input_item.is_file():
