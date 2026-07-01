@@ -24,5 +24,15 @@ test = [
 [project.scripts]
 fileconv = "fileconv.cli:app"
 
+[project.urls]
+Homepage = "https://github.com/mwasgibson/grubber"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.pyproject]
+# LibreOffice is required as a system dependency for the built-in document converter.
+# Install it with your package manager, for example: sudo apt-get install -y libreoffice
+
 [project.entry-points."fileconv.converters"]
 # Third-party plugins can register here.
