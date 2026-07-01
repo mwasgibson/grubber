@@ -22,4 +22,4 @@ dev = [
 fileconv = "fileconv.cli:app"
 
 [project.entry-points."fileconv.converters"]
-# Third-party plugins can register here.
+libreoffice = "fileconv.converters.libreoffice:LibreOfficeConverter"
