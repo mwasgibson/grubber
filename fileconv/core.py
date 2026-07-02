@@ -3,6 +3,7 @@ from __future__ import annotations
 from .detection import detect_format
 
 from dataclasses import dataclass
+from importlib import import_module
 from importlib.metadata import entry_points
 from pathlib import Path
 from shutil import which
@@ -169,10 +170,10 @@ class ConversionManager:
                         {
                             "input": str(source),
                             "output": None,
-                            "status": "failed",
-                            "reason": str(exc),
-                        }
-                    )
+                                "status": "failed",
+                                "reason": str(exc),
+                            }
+                        )
 
         return results
 
@@ -252,7 +253,7 @@ class ConversionManager:
     @staticmethod
     def _magic_available() -> bool:
         try:
-            import magic  # noqa: F401
+            import_module("magic")
             return True
         except Exception:
             return False
