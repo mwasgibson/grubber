@@ -223,3 +223,5 @@ __marimo__/
 #Cache files
 .cache/
 .pytest_cache/
+
+demo/
