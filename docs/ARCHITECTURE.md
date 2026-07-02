@@ -2,55 +2,53 @@
 
 ## Overview
 
-FileConv is structured as a small CLI layer on top of a conversion engine. The CLI handles argument parsing, output formatting, and stream separation. The core engine discovers inputs, computes output paths, and performs or simulates conversions.
+FileConv uses Typer for the CLI layer and a conversion core for file processing. The CLI is modular: each command group lives in its own module, while the root app handles global flags and subcommand registration.
+
+## Module layout
+
+- `cli.py` wires the root app and registers command groups.
+- `version.py` stores the package version.
+- `commands/batch.py` handles batch conversion, dry-run, and JSON output.
+- `commands/convert.py` handles single-file conversion.
+- `commands/doctor.py` performs environment diagnostics.
+- `commands/inspect.py` is reserved for future inspection/reporting.
+- `core.py` handles discovery, planning, and conversion work.
 
 ## Execution flow
 
-1. Parse CLI arguments with Typer.
-2. Select output mode with `--format text|json`.
-3. Run `convert_many()` once to collect a structured payload.
-4. Emit JSON to stdout or text to stderr depending on the selected mode.
+1. Typer parses the root command and global options.
+2. `--version` exits early through a root callback.
+3. Completion flags are available from Typer’s built-in support.
+4. `batch` calls `convert_many()` and emits either JSON or text.
+5. `convert` calls `convert()` for single-file execution.
+6. `doctor` checks environment readiness.
+7. `inspect` will report file details once defined.
 
-## Core data shape
+## Output contract
 
-The batch engine returns:
+Batch JSON payloads include:
 
-```json
-{
-  "elapsed_seconds": 0.8421,
-  "counts": {
-    "planned": 12,
-    "ok": 0,
-    "skipped": 0,
-    "failed": 0,
-    "total": 12
-  },
-  "results": [
-    {
-      "input": "images/cats/kitten.png",
-      "output": "out/cats/kitten.webp",
-      "status": "planned",
-      "reason": null
-    }
-  ]
-}
-```
+- `mode`
+- `format`
+- `counts`
+- `elapsed_seconds`
+- `results`
 
-## Output rules
+Each result item includes:
 
-- JSON mode writes only JSON to stdout.
-- Text mode writes readable lines and summaries to stderr.
-- Progress output is disabled when JSON mode is selected.
-- Dry-run never writes files.
+- `input`
+- `output`
+- `status`
+- `reason`
 
-## Path handling
+## Path behavior
 
-Input paths are expanded recursively when requested. Output paths mirror the relative subfolder structure beneath the output root. This ensures planned and actual outputs stay consistent.
+Recursive batch output mirrors nested input folders under the output root. Dry-run calculates output paths without writing files.
 
-## Testing strategy
+## Testing
 
-- Test the CLI with `CliRunner`.
-- Validate stdout JSON parsing.
-- Confirm stderr contains human summaries in text mode.
-- Confirm dry-run does not create files.
-- Confirm nested folders are preserved in output paths.
+- Test JSON mode with `CliRunner`.
+- Test the root `--version` flag.
+- Test doctor output for missing and present dependencies.
+- Test that recursive output paths are preserved.
+- Test that completion flags appear in help.

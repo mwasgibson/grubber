@@ -1,101 +1,37 @@
 from __future__ import annotations
 
-import json
-import sys
-from enum import Enum
-from pathlib import Path
-from typing import Any
-
 import typer
 
-from .core import ConversionManager
-from .errors import FileConvError
+from .commands.batch import app as batch_app
+from .commands.convert import app as convert_app
+from .commands.doctor import app as doctor_app
+from .commands.inspect import app as inspect_app
+from .version import __version__
 
-app = typer.Typer(add_completion=False)
-manager = ConversionManager()
-
-
-class OutputFormat(str, Enum):
-    text = "text"
-    json = "json"
+app = typer.Typer(add_completion=True, no_args_is_help=True)
 
 
-def build_batch_payload(*, mode: str, payload: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "mode": mode,
-        "format": "json",
-        "counts": payload["counts"],
-        "elapsed_seconds": payload["elapsed_seconds"],
-        "results": payload["results"],
-    }
+def version_callback(value: bool) -> None:
+    if value:
+        typer.echo(__version__)
+        raise typer.Exit()
 
 
-def emit_batch_output(*, payload: dict[str, Any], dry_run: bool, output_format: OutputFormat) -> None:
-    if output_format == OutputFormat.json:
-        export = build_batch_payload(
-            mode="dry_run" if dry_run else "batch",
-            payload=payload,
-        )
-        sys.stdout.write(json.dumps(export, indent=2) + "\n")
-        return
-
-    for item in payload["results"]:
-        typer.echo(
-            f"{item['status'].upper()}: {item['input']} -> {item['output']} {item['reason'] or ''}".rstrip(),
-            err=True,
-        )
-
-    counts = payload["counts"]
-    if dry_run:
-        typer.echo(f"Dry run summary: planned={counts['planned']} total={counts['total']}", err=True)
-    else:
-        typer.echo(
-            f"Summary: ok={counts['ok']} skipped={counts['skipped']} failed={counts['failed']} total={counts['total']}",
-            err=True,
-        )
-
-
-@app.command()
-def convert(
-    input_path: Path = typer.Argument(..., exists=True, readable=True),
-    to: str = typer.Option(..., "--to", "-t"),
-    out_dir: Path | None = typer.Option(None, "--out-dir", "-o"),
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=version_callback,
+        is_eager=True,
+        help="Show the installed version and exit.",
+    ),
 ):
-    try:
-        output_path = None
-        if out_dir is not None:
-            out_dir.mkdir(parents=True, exist_ok=True)
-            output_path = out_dir / f"{input_path.stem}.{to.lstrip('.')}"
-        result = manager.convert(input_path, to, output_path=output_path)
-        typer.echo(str(result))
-    except FileConvError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(code=1) from exc
+    """FileConv: batch file conversion with dry-run, JSON export, and environment checks."""
+    pass
 
 
-@app.command()
-def batch(
-    input_path: Path = typer.Argument(..., exists=True, readable=True),
-    to: str = typer.Option(..., "--to", "-t"),
-    out_dir: Path = typer.Option(..., "--out-dir", "-o"),
-    recursive: bool = typer.Option(False, "--recursive", "-r"),
-    overwrite: bool = typer.Option(False, "--overwrite"),
-    no_progress: bool = typer.Option(False, "--no-progress"),
-    dry_run: bool = typer.Option(False, "--dry-run"),
-    format: OutputFormat = typer.Option(OutputFormat.text, "--format"),
-):
-    try:
-        out_dir.mkdir(parents=True, exist_ok=True)
-        payload = manager.convert_many(
-            [input_path],
-            to,
-            output_root=out_dir,
-            recursive=recursive,
-            overwrite=overwrite,
-            show_progress=not no_progress and format == OutputFormat.text,
-            dry_run=dry_run,
-        )
-        emit_batch_output(payload=payload, dry_run=dry_run, output_format=format)
-    except FileConvError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(code=1) from exc
+app.add_typer(batch_app, name="batch", help="Batch conversion commands.")
+app.add_typer(convert_app, name="convert", help="Single-file conversion commands.")
+app.add_typer(doctor_app, name="doctor", help="Environment checks.")
+app.add_typer(inspect_app, name="inspect", help="Inspect input files and planned outputs.")

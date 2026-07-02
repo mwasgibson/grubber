@@ -311,3 +311,17 @@ Add an image format conversion plugin for raster formats like PNG, JPG, WebP, BM
 
 - README should match the final CLI contract.
 - Keep docs aligned with `--format` and dry-run JSON behavior.
+
+## 2026-07-02 - Modular CLI restructure
+### What changed
+- Added version.py to centralize package versioning.
+- Split batch into commands/batch.py.
+- Split convert into commands/convert.py.
+- Split doctor into commands/doctor.py.
+- Reserved inspect as commands/inspect.py.
+- Updated the root CLI to register modular command apps.
+
+### Notes
+- Root CLI owns version and shell completion behavior.
+- Command groups are organized one file per concern.
+- README and architecture docs should match the command list exactly.

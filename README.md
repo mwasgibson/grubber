@@ -71,3 +71,39 @@ Each result item includes:
 - `--dry-run` calculates the planned output tree without writing files.
 - `--recursive` preserves subfolder structure under the output directory.
 - `--overwrite` allows replacing existing outputs.
+
+## Commands
+
+- `fileconv batch` — batch conversion with dry-run and JSON output.
+- `fileconv convert` — convert one file.
+- `fileconv doctor` — check environment readiness.
+- `fileconv inspect` — inspect inputs and planned outputs.
+- `fileconv --version` — print the installed version.
+- `fileconv --install-completion` — install shell completion.
+- `fileconv --show-completion` — print the completion script.
+
+## Usage
+
+Dry-run in text mode:
+
+```bash
+fileconv batch images --to webp --out-dir out --recursive --dry-run
+```
+
+Dry-run in JSON mode:
+
+```bash
+fileconv batch images --to webp --out-dir out --recursive --dry-run --format json
+```
+
+Run doctor:
+
+```bash
+fileconv doctor
+```
+
+Print version:
+
+```bash
+fileconv --version
+```
