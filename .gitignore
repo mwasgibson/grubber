@@ -219,3 +219,7 @@ __marimo__/
 
 # VSCode
 .vscode/
+
+#Cache files
+.cache/
+.pytest_cache/

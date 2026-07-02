@@ -1,4 +1,5 @@
 from __future__ import annotations
+import time
 
 from .detection import detect_format
 from pathlib import Path
@@ -133,9 +134,12 @@ class ConversionManager:
         options: dict[str, Any] | None = None,
         show_progress: bool = True,
         dry_run: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> dict[str, Any]:
+        started: float = time.monotonic()
         results: list[dict[str, Any]] = []
         options = options or {}
+        elapsed_seconds: float = 0.0
+        counts: dict[str, int] = {}
 
         # Build (input_root, source_file) tasks so we know what to be relative to
         tasks: list[tuple[Path, Path]] = []
@@ -208,8 +212,21 @@ class ConversionManager:
                         "reason": str(exc),
                     }
                 )
+                
+            elapsed_seconds = time.monotonic() - started
+            counts = {
+                        "planned": sum(1 for item in results if item["status"] == "planned"),
+                        "ok": sum(1 for item in results if item["status"] == "ok"),
+                        "skipped": sum(1 for item in results if item["status"] == "skipped"),
+                        "failed": sum(1 for item in results if item["status"] == "failed"),
+                        "total": len(results),
+                    }    
 
-        return results
+        return {
+        "elapsed_seconds": elapsed_seconds,
+        "counts": counts,
+        "results": results,
+}
 
     def _build_batch_output_path(
         self,
