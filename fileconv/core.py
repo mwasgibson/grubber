@@ -3,6 +3,7 @@ from __future__ import annotations
 from .detection import detect_format
 
 from dataclasses import dataclass
+from importlib import import_module
 from importlib.metadata import entry_points
 from pathlib import Path
 from shutil import which
@@ -83,7 +84,6 @@ def converter(
 
     return decorator
 
-
 class ConversionManager:
     def __init__(self, registry: ConverterRegistry | None = None) -> None:
         self.registry = registry or REGISTRY
@@ -115,7 +115,7 @@ class ConversionManager:
         if converter_cls is None:
             raise UnsupportedConversionError(f"No converter for {input_mime} -> {output_mime}")
         return converter_cls.name
-    
+
     def convert_many(
         self,
         inputs: list[Path],
@@ -170,10 +170,10 @@ class ConversionManager:
                         {
                             "input": str(source),
                             "output": None,
-                            "status": "failed",
-                            "reason": str(exc),
-                        }
-                    )
+                                "status": "failed",
+                                "reason": str(exc),
+                            }
+                        )
 
         return results
 
@@ -217,7 +217,7 @@ class ConversionManager:
             },
             "format_detection": {
                 "ok": True,
-                "magic_available": _magic_available(),
+                "magic_available": self._magic_available(),
                 "strategy": "magic-first, extension-fallback",
             },
             "binaries": {
@@ -249,10 +249,11 @@ class ConversionManager:
     def _guess_output_mime(self, output_format: str) -> str:
         suffix = output_format.lower().lstrip(".")
         return _EXT_TO_MIME.get(suffix, f"application/{suffix}")
-    
+
+    @staticmethod
     def _magic_available() -> bool:
         try:
-            import magic  # noqa: F401
+            import_module("magic")
             return True
         except Exception:
             return False
