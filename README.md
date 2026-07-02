@@ -13,3 +13,7 @@ A small, extensible local file conversion tool built around a registry and plugi
 fileconv convert sample.docx --to pdf
 fileconv doctor
 ```
+
+## Dependencies
+- Python dependencies are installed with `pip install -e '.[dev]'`
+- LibreOffice is required for the built-in document converter and must be available on the system PATH (for example: `sudo apt-get install -y libreoffice`)

@@ -10,6 +10,9 @@ from ..core import converter
 
 @converter(name="pillow", priority=20)
 class PillowImageConverter:
+    name: str = "pillow"
+    priority: int = 20
+
     supported_input_mimes = {
         "image/png",
         "image/jpeg",
