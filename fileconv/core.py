@@ -4,6 +4,7 @@ import time
 from .detection import detect_format
 from pathlib import Path
 from typing import Any
+
 from tqdm import tqdm
 
 from dataclasses import dataclass
@@ -23,7 +24,6 @@ class ConverterSpec:
     name: str
     cls: type[ConverterProtocol]
     priority: int
-
 
 class ConverterRegistry:
     def __init__(self) -> None:
