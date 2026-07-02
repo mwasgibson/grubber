@@ -1,4 +1,10 @@
+from __future__ import annotations
+
+import json
+import sys
+from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import typer
 
@@ -7,6 +13,46 @@ from .errors import FileConvError
 
 app = typer.Typer(add_completion=False)
 manager = ConversionManager()
+
+
+class OutputFormat(str, Enum):
+    text = "text"
+    json = "json"
+
+
+def build_batch_payload(*, mode: str, payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "mode": mode,
+        "format": "json",
+        "counts": payload["counts"],
+        "elapsed_seconds": payload["elapsed_seconds"],
+        "results": payload["results"],
+    }
+
+
+def emit_batch_output(*, payload: dict[str, Any], dry_run: bool, output_format: OutputFormat) -> None:
+    if output_format == OutputFormat.json:
+        export = build_batch_payload(
+            mode="dry_run" if dry_run else "batch",
+            payload=payload,
+        )
+        sys.stdout.write(json.dumps(export, indent=2) + "\n")
+        return
+
+    for item in payload["results"]:
+        typer.echo(
+            f"{item['status'].upper()}: {item['input']} -> {item['output']} {item['reason'] or ''}".rstrip(),
+            err=True,
+        )
+
+    counts = payload["counts"]
+    if dry_run:
+        typer.echo(f"Dry run summary: planned={counts['planned']} total={counts['total']}", err=True)
+    else:
+        typer.echo(
+            f"Summary: ok={counts['ok']} skipped={counts['skipped']} failed={counts['failed']} total={counts['total']}",
+            err=True,
+        )
 
 
 @app.command()
@@ -34,45 +80,22 @@ def batch(
     out_dir: Path = typer.Option(..., "--out-dir", "-o"),
     recursive: bool = typer.Option(False, "--recursive", "-r"),
     overwrite: bool = typer.Option(False, "--overwrite"),
+    no_progress: bool = typer.Option(False, "--no-progress"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    format: OutputFormat = typer.Option(OutputFormat.text, "--format"),
 ):
     try:
         out_dir.mkdir(parents=True, exist_ok=True)
-        results = manager.convert_many(
+        payload = manager.convert_many(
             [input_path],
             to,
             output_root=out_dir,
             recursive=recursive,
             overwrite=overwrite,
+            show_progress=not no_progress and format == OutputFormat.text,
+            dry_run=dry_run,
         )
-
-        ok = sum(1 for item in results if item["status"] == "ok")
-        skipped = sum(1 for item in results if item["status"] == "skipped")
-        failed = sum(1 for item in results if item["status"] == "failed")
-
-        for item in results:
-            status = item["status"]
-            input_name = item["input"]
-            output_name = item["output"]
-            reason = item["reason"]
-            typer.echo(f"{status.upper()}: {input_name} -> {output_name} {reason or ''}".rstrip())
-
-        typer.echo(f"Summary: ok={ok} skipped={skipped} failed={failed} total={len(results)}")
+        emit_batch_output(payload=payload, dry_run=dry_run, output_format=format)
     except FileConvError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
-
-
-@app.command()
-def doctor():
-    checks = manager.doctor()
-
-    typer.echo("FileConv doctor report")
-    typer.echo(f"Python: {checks['python']['version']} | ok={checks['python']['ok']}")
-    typer.echo(f"Entry points loaded: {checks['entry_points']['ok']} | group={checks['entry_points']['group']}")
-    typer.echo(f"Registered converters: {', '.join(checks['registry']['converters']) or 'none'}")
-    typer.echo("Binaries:")
-
-    for name, data in checks["binaries"].items():
-        typer.echo(f"  - {name}: ok={data['ok']} path={data['path']}")
-
-    typer.echo(f"Overall: {'ok' if checks['overall_ok'] else 'needs attention'}")

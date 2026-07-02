@@ -1,6 +1,11 @@
 from __future__ import annotations
+import time
 
 from .detection import detect_format
+from pathlib import Path
+from typing import Any
+
+from tqdm import tqdm
 
 from dataclasses import dataclass
 from importlib import import_module
@@ -19,7 +24,6 @@ class ConverterSpec:
     name: str
     cls: type[ConverterProtocol]
     priority: int
-
 
 class ConverterRegistry:
     def __init__(self) -> None:
@@ -116,6 +120,9 @@ class ConversionManager:
             raise UnsupportedConversionError(f"No converter for {input_mime} -> {output_mime}")
         return converter_cls.name
 
+# Preserve the source folder structure by computing the file's path
+# relative to the batch input root, then recreating that subpath under
+# the output directory. relative_parent = source.parent.relative_to(root)
     def convert_many(
         self,
         inputs: list[Path],
@@ -125,68 +132,101 @@ class ConversionManager:
         recursive: bool = False,
         overwrite: bool = False,
         options: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
+        show_progress: bool = True,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        started: float = time.monotonic()
         results: list[dict[str, Any]] = []
         options = options or {}
+        elapsed_seconds: float = 0.0
+        counts: dict[str, int] = {}
 
+        # Build (input_root, source_file) tasks so we know what to be relative to
+        tasks: list[tuple[Path, Path]] = []
         for input_item in inputs:
-            for source in self._expand_input(input_item, recursive=recursive):
-                try:
-                    output_path = self._build_batch_output_path(
-                        source=source,
-                        input_root=input_item if input_item.is_dir() else input_item.parent,
-                        output_root=output_root,
-                        output_format=output_format,
-                    )
+            files = self._expand_input(input_item, recursive=recursive)
+            for f in files:
+                tasks.append((input_item, f))
 
-                    if output_path.exists() and not overwrite:
-                        results.append(
-                            {
-                                "input": str(source),
-                                "output": str(output_path),
-                                "status": "skipped",
-                                "reason": "output exists",
-                            }
-                        )
-                        continue
+        iterator = tqdm(tasks, unit="file", desc="Converting") if show_progress else tasks
 
-                    output_path.parent.mkdir(parents=True, exist_ok=True)
-                    produced = self.convert(
-                        source,
-                        output_format,
-                        output_path=output_path,
-                        options=options,
-                    )
-                    results.append(
-                        {
-                            "input": str(source),
-                            "output": str(produced),
-                            "status": "ok",
-                            "reason": None,
-                        }
-                    )
-                except Exception as exc:
-                    results.append(
-                        {
-                            "input": str(source),
-                            "output": None,
-                                "status": "failed",
-                                "reason": str(exc),
-                            }
-                        )
+        for input_root, source in iterator:
+            # Determine the true root to measure relativity from
+            root = input_root if input_root.is_dir() else input_root.parent
 
-        return results
+            try:
+                relative_parent = source.parent.relative_to(root)
+            except ValueError:
+                # If for some reason source is not under root, fall back to flat
+                relative_parent = Path(".")
 
-    def _expand_input(self, input_item: Path, *, recursive: bool) -> list[Path]:
-        if input_item.is_file():
-            return [input_item]
+            output_path = (
+                output_root
+                / relative_parent
+                / f"{source.stem}.{output_format.lstrip('.')}"
+            )
+            plan: dict[str, Any] = {
+                "input": str(source),
+                "output": str(output_path),
+                "status": "planned" if dry_run else "pending",
+                "reason": None,
+            }
 
-        if input_item.is_dir():
-            if recursive:
-                return [p for p in input_item.rglob("*") if p.is_file()]
-            return [p for p in input_item.iterdir() if p.is_file()]
+            if dry_run:
+                results.append(plan)
+                continue
 
-        return []
+            if output_path.exists() and not overwrite:
+                results.append(
+                    {
+                        "input": str(source),
+                        "output": str(output_path),
+                        "status": "skipped",
+                        "reason": "output exists",
+                    }
+                )
+                continue
+
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                produced = self.convert(
+                    source,
+                    output_format,
+                    output_path=output_path,
+                    options=options,
+                )
+                results.append(
+                    {
+                        "input": str(source),
+                        "output": str(produced),
+                        "status": "ok",
+                        "reason": None,
+                    }
+                )
+            except Exception as exc:
+                results.append(
+                    {
+                        "input": str(source),
+                        "output": None,
+                        "status": "failed",
+                        "reason": str(exc),
+                    }
+                )
+                
+        elapsed_seconds = time.monotonic() - started
+        counts = {
+                    "planned": sum(1 for item in results if item["status"] == "planned"),
+                    "ok": sum(1 for item in results if item["status"] == "ok"),
+                    "skipped": sum(1 for item in results if item["status"] == "skipped"),
+                    "failed": sum(1 for item in results if item["status"] == "failed"),
+                    "total": len(results),
+                }    
+
+        return {
+        "elapsed_seconds": elapsed_seconds,
+        "counts": counts,
+        "results": results,
+}
 
     def _build_batch_output_path(
         self,
@@ -198,6 +238,31 @@ class ConversionManager:
     ) -> Path:
         relative_parent = source.parent.relative_to(input_root) if source.parent != input_root else Path(".")
         return output_root / relative_parent / f"{source.stem}.{output_format.lstrip('.')}"
+    
+    def supported_extensions(self) -> set[str]:
+        return {
+            "doc", "docx", "odt", "xls", "xlsx", "ppt", "pptx",
+            "png", "jpg", "jpeg", "webp", "bmp", "gif", "tif", "tiff",
+        }
+
+    def is_supported_file(self, path: Path) -> bool:
+        if not path.is_file():
+            return False
+        suffix = path.suffix.lower().lstrip(".")
+        return suffix in self.supported_extensions()
+
+    def _expand_input(self, input_item: Path, *, recursive: bool, include_unsupported: bool = False) -> list[Path]:
+        if input_item.is_file():
+            return [input_item] if include_unsupported or self.is_supported_file(input_item) else []
+
+        if input_item.is_dir():
+            iterator = input_item.rglob("*") if recursive else input_item.iterdir()
+            files = [p for p in iterator if p.is_file()]
+            if include_unsupported:
+                return files
+            return [p for p in files if self.is_supported_file(p)]
+
+        return []
 
     def doctor(self) -> dict[str, Any]:
         self.registry.load_entry_points()
