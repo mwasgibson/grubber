@@ -110,3 +110,62 @@ Add an image format conversion plugin for raster formats like PNG, JPG, WebP, BM
 ### Notes
 - Batch mode is folder-friendly and suitable for image collections.
 - Future improvement: add filtering by allowed extensions and optional progress bars.
+
+## 2026-07-02 - Batch filtering and progress
+### What changed
+- Added supported-file filtering for batch conversion.
+- Added tqdm progress feedback for folder runs.
+- Kept batch conversion per-file and non-blocking on individual failures.
+
+### Notes
+- Progress should reflect actual files being processed.
+- Unsupported files should be skipped before conversion starts.
+
+## 2026-07-02 - Progress and filtering
+### What changed
+- Added supported-file filtering to batch traversal.
+- Added tqdm-based progress display.
+- Added `--no-progress` to disable the bar in scripts.
+
+### Notes
+- Progress bar uses prefiltered files only.
+- Unsupported files are not converted or counted.
+
+## 2026-07-02 - Preserve subfolder structure in batch
+### What changed
+- Batch output now mirrors the input folder structure under the chosen output root.
+- Relative paths are computed from the input root to each source file.
+- Output filenames keep the same stem with a new extension.
+
+### Notes
+- This avoids filename collisions for different subfolders.
+- Makes it easier to map converted files back to their originals.
+
+## 2026-07-02 - Preserve directory structure in batch output
+### What changed
+- Batch conversion now mirrors the input folder structure under the output directory.
+- Output paths use the source file’s path relative to the batch input root.
+- Filenames keep the same stem and only change the extension.
+
+### Notes
+- Avoids collisions when different subfolders contain files with the same name.
+- Makes it easy to match converted files back to originals.
+
+## 2026-07-02 - Document batch path mirroring
+### What changed
+- Added a code comment explaining why relative paths are used in batch output.
+- Documented how `relative_to()` helps recreate the input folder tree under the output directory.
+
+### Notes
+- This keeps batch output organized and avoids filename collisions.
+- The output path is derived from the source file’s subpath under the input root.
+
+## 2026-07-02 - Dry-run mode
+### What changed
+- Added a dry-run mode for batch conversion.
+- Dry-run prints the planned output tree without writing files.
+- Dry-run is useful for checking recursive batch runs before executing them.
+
+### Notes
+- Output should mirror the real batch layout.
+- No files should be created in dry-run mode.

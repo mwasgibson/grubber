@@ -34,6 +34,8 @@ def batch(
     out_dir: Path = typer.Option(..., "--out-dir", "-o"),
     recursive: bool = typer.Option(False, "--recursive", "-r"),
     overwrite: bool = typer.Option(False, "--overwrite"),
+    no_progress: bool = typer.Option(False, "--no-progress"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
 ):
     try:
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -43,25 +45,26 @@ def batch(
             output_root=out_dir,
             recursive=recursive,
             overwrite=overwrite,
+            show_progress=not no_progress,
+            dry_run=dry_run,
         )
-
+        
+        for item in results:
+            typer.echo(f"{item['status'].upper()}: {item['input']} -> {item['output']} {item['reason'] or ''}".rstrip())
+            
+        planned = sum(1 for item in results if item["status"] == "planned")
         ok = sum(1 for item in results if item["status"] == "ok")
         skipped = sum(1 for item in results if item["status"] == "skipped")
         failed = sum(1 for item in results if item["status"] == "failed")
 
-        for item in results:
-            status = item["status"]
-            input_name = item["input"]
-            output_name = item["output"]
-            reason = item["reason"]
-            typer.echo(f"{status.upper()}: {input_name} -> {output_name} {reason or ''}".rstrip())
-
-        typer.echo(f"Summary: ok={ok} skipped={skipped} failed={failed} total={len(results)}")
+        if dry_run:
+            typer.echo(f"Dry run summary: planned={planned} total={len(results)}")
+        else:
+            typer.echo(f"Summary: ok={ok} skipped={skipped} failed={failed} total={len(results)}")
     except FileConvError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
-
-
+        
 @app.command()
 def doctor():
     checks = manager.doctor()
