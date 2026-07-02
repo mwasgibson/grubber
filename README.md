@@ -1,19 +1,73 @@
 # FileConv
 
-A small, extensible local file conversion tool built around a registry and plugin pattern.
+FileConv is a batch file conversion CLI with dry-run support, JSON export, and recursive output tree preservation.
 
-## What it does
-- Detects input files
-- Resolves the best converter plugin
-- Runs conversions through a clean manager layer
-- Supports built-in converters and external entry-point plugins
+## Features
 
-## Example
+- Convert files in batch.
+- Preview planned output with dry-run.
+- Export dry-run and batch results as JSON.
+- Keep nested input folders mirrored in the output tree.
+- Switch between human-readable and machine-readable output with `--format`.
+
+## Usage
+
+Convert one file:
+
 ```bash
-fileconv convert sample.docx --to pdf
-fileconv doctor
+fileconv convert input.png --to webp --out-dir out
 ```
 
-## Dependencies
-- Python dependencies are installed with `pip install -e '.[dev]'`
-- LibreOffice is required for the built-in document converter and must be available on the system PATH (for example: `sudo apt-get install -y libreoffice`)
+Preview a batch run:
+
+```bash
+fileconv batch images --to webp --out-dir out --recursive --dry-run
+```
+
+Export the plan as JSON:
+
+```bash
+fileconv batch images --to webp --out-dir out --recursive --dry-run --format json
+```
+
+Pipe JSON into scripts:
+
+```bash
+fileconv batch images --to webp --out-dir out --recursive --dry-run --format json | jq '.counts'
+```
+
+Human-readable output is the default:
+
+```bash
+fileconv batch images --to webp --out-dir out --recursive --format text
+```
+
+## Output format
+
+- `text` is for terminal use.
+- `json` is for scripts and automation.
+- In JSON mode, stdout contains only JSON.
+- Progress, summaries, and diagnostics stay on stderr.
+
+## JSON export
+
+The JSON export includes:
+
+- `mode`
+- `format`
+- `counts`
+- `elapsed_seconds`
+- `results`
+
+Each result item includes:
+
+- `input`
+- `output`
+- `status`
+- `reason`
+
+## Behavior
+
+- `--dry-run` calculates the planned output tree without writing files.
+- `--recursive` preserves subfolder structure under the output directory.
+- `--overwrite` allows replacing existing outputs.

@@ -296,3 +296,18 @@ Add an image format conversion plugin for raster formats like PNG, JPG, WebP, BM
 
 - Use one path for result collection.
 - Use one path for final emission.
+
+## 2026-07-02 - Documentation update
+
+### What changed
+
+- Documented dry-run and JSON output usage.
+- Added examples for piping JSON into scripts.
+- Documented output-stream behavior.
+- Added architecture notes for CLI flow and payload shapes.
+- Documented stdout/stderr separation.
+
+### Notes
+
+- README should match the final CLI contract.
+- Keep docs aligned with `--format` and dry-run JSON behavior.

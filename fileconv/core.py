@@ -213,14 +213,14 @@ class ConversionManager:
                     }
                 )
                 
-            elapsed_seconds = time.monotonic() - started
-            counts = {
-                        "planned": sum(1 for item in results if item["status"] == "planned"),
-                        "ok": sum(1 for item in results if item["status"] == "ok"),
-                        "skipped": sum(1 for item in results if item["status"] == "skipped"),
-                        "failed": sum(1 for item in results if item["status"] == "failed"),
-                        "total": len(results),
-                    }    
+        elapsed_seconds = time.monotonic() - started
+        counts = {
+                    "planned": sum(1 for item in results if item["status"] == "planned"),
+                    "ok": sum(1 for item in results if item["status"] == "ok"),
+                    "skipped": sum(1 for item in results if item["status"] == "skipped"),
+                    "failed": sum(1 for item in results if item["status"] == "failed"),
+                    "total": len(results),
+                }    
 
         return {
         "elapsed_seconds": elapsed_seconds,
