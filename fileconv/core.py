@@ -158,28 +158,32 @@ class ConversionManager:
             )
         return converter
 
-    def convert(self, input_path: Path, to: str, output_path: Path | None = None) -> Path:
-        converter_name = self._pick_converter(input_path, to)
-        if output_path is None:
-            output_path = input_path.with_suffix(f".{to.lstrip('.')}")
-        try:
-            spec = REGISTRY.get(converter_name)
-        except KeyError:
-            spec = None
-        if spec is not None:
-            handler = spec.handler
-            instance = handler() if isinstance(handler, type) else handler
-            convert_method = getattr(instance, "convert", None)
-            if callable(convert_method):
-                result = convert_method(input_path, output_path)
-                if isinstance(result, Path):
-                    return result
-                return output_path
-            if callable(instance):
-                result = instance(input_path, output_path)
-                if isinstance(result, Path):
-                    return result
-                return output_path
+    def convert(
+        self,
+        input_path: Path,
+        to: str,
+        output_path: Path | None = None,
+    ) -> Path:
+        output_path = self._build_output_path(
+            input_path,
+            output_path,
+            to,
+        )
+
+        converter = self._find_converter(
+            input_path,
+            output_path,
+        )
+
+        handler: Any = converter.handler
+        if isinstance(handler, type):
+            handler = handler()
+
+        if hasattr(handler, "convert"):
+            handler.convert(input_path, output_path)
+        else:
+            handler(input_path, output_path)
+
         return output_path
 
     def convert_many(
