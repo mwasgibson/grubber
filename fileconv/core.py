@@ -35,16 +35,19 @@ class Registry:
         return self._items[name]
 
     def resolve(self, input_mime: str, output_mime: str) -> ConverterSpec | None:
-        if (
-            input_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            and output_mime == "application/pdf"
+       if (
+        input_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        and output_mime == "application/pdf"
         ):
-            return self._items.get("libreoffice")
-        if input_mime == "application/pdf" and output_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-            return self._items.get("libreoffice")
-        if input_mime.startswith("image/") and output_mime.startswith("image/"):
-            return self._items.get("pillow")
-        return None
+        return self._items.get("libreoffice")
+       if (
+        input_mime == "application/pdf"
+        and output_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+       ):
+        return self._items.get("libreoffice")
+       if input_mime.startswith("image/") and output_mime.startswith("image/"):
+        return self._items.get("pillow")
+       return None
 
 
 REGISTRY = Registry()
