@@ -1,5 +1,6 @@
 from pathlib import Path
 
+#import fileconv.converters.image  # noqa: F401 - ensures decorator registration runs
 from fileconv.core import ConversionManager, REGISTRY
 
 

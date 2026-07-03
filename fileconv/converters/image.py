@@ -8,7 +8,7 @@ from PIL import Image
 from ..core import converter
 
 
-@converter(name="pillow", priority=20)
+@converter(name="pillow")
 class PillowImageConverter:
     name: str = "pillow"
     priority: int = 20
