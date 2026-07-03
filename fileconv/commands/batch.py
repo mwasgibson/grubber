@@ -11,7 +11,6 @@ import typer
 from ..core import ConversionManager
 from ..errors import FileConvError
 
-app = typer.Typer(add_completion=False)
 manager = ConversionManager()
 
 
@@ -52,8 +51,7 @@ def emit_batch_output(*, payload: dict[str, Any], dry_run: bool, output_format: 
         )
 
 
-@app.command()
-def run(
+def batch(
     input_path: Path = typer.Argument(..., exists=True, readable=True),
     to: str = typer.Option(..., "--to", "-t"),
     out_dir: Path = typer.Option(..., "--out-dir", "-o"),

@@ -7,12 +7,10 @@ import typer
 from ..core import ConversionManager
 from ..errors import FileConvError
 
-app = typer.Typer(add_completion=False)
 manager = ConversionManager()
 
 
-@app.command()
-def run(
+def convert(
     input_path: Path = typer.Argument(..., exists=True, readable=True),
     to: str = typer.Option(..., "--to", "-t"),
     out_dir: Path | None = typer.Option(None, "--out-dir", "-o"),

@@ -18,8 +18,10 @@ class ConversionManager:
     """Plan and execute file conversions."""
 
     def convert(self, input_path: Path, to: str, output_path: Path | None = None) -> Path:
+        """Convert a single file and return the output path."""
         if output_path is None:
             output_path = input_path.with_suffix(f".{to.lstrip('.')}")
+        # Real conversion work would go here; for now we just return the planned path.
         return output_path
 
     def convert_many(
@@ -33,11 +35,13 @@ class ConversionManager:
         show_progress: bool = False,
         dry_run: bool = False,
     ) -> dict[str, Any]:
+        """Convert many files and return a structured batch payload."""
         started = time.perf_counter()
         results: list[dict[str, Any]] = []
         planned = ok = skipped = failed = 0
 
         for input_path in input_paths:
+            # For now, keep path logic simple; you can expand this to preserve subfolders later.
             output_path = output_root / f"{input_path.stem}.{to.lstrip('.')}"
             if dry_run:
                 planned += 1
@@ -51,6 +55,7 @@ class ConversionManager:
                 )
                 continue
 
+            # Real conversion work would go here; for now, pretend conversion succeeded.
             ok += 1
             results.append(
                 {

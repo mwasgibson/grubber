@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import typer
 
-from .commands.batch import app as batch_app
-from .commands.convert import app as convert_app
-from .commands.doctor import app as doctor_app
-from .commands.inspect import app as inspect_app
+from .commands.batch import batch
+from .commands.convert import convert
+from .commands.doctor import doctor
+from .commands.inspect import inspect
 from .version import __version__
 
 app = typer.Typer(add_completion=True, no_args_is_help=True)
@@ -31,7 +31,7 @@ def main(
     pass
 
 
-app.add_typer(batch_app, name="batch", help="Batch conversion commands.")
-app.add_typer(convert_app, name="convert", help="Single-file conversion commands.")
-app.add_typer(doctor_app, name="doctor", help="Environment checks.")
-app.add_typer(inspect_app, name="inspect", help="Inspect input files and planned outputs.")
+app.command(name="batch")(batch)
+app.command(name="convert")(convert)
+app.command(name="doctor")(doctor)
+app.command(name="inspect")(inspect)

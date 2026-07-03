@@ -5,16 +5,13 @@ from pathlib import Path
 
 import typer
 
-app = typer.Typer(add_completion=False)
-
 
 def _check_binary(name: str) -> str:
     path = shutil.which(name)
     return path if path else "not found"
 
 
-@app.command()
-def run() -> None:
+def doctor() -> None:
     """Check whether the local environment is ready for FileConv."""
     typer.echo("FileConv doctor")
     typer.echo(f"LibreOffice soffice: {_check_binary('soffice')}")

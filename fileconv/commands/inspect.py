@@ -4,11 +4,8 @@ from pathlib import Path
 
 import typer
 
-app = typer.Typer(add_completion=False)
 
-
-@app.command()
-def run(
+def inspect(
     input_path: Path = typer.Argument(..., exists=True, readable=True),
 ):
     """Inspect an input file or directory and report what FileConv sees."""
