@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import mimetypes
+import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from .errors import FileConvError
+
 
 @dataclass(frozen=True)
 class ConverterSpec:
     """Describe one registered converter."""
-
     name: str
     handler: Callable[..., Any]
 
@@ -34,10 +36,11 @@ class Registry:
 
     def resolve(self, input_mime: str, output_mime: str) -> ConverterSpec | None:
         if (
-            input_mime
-            == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            input_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             and output_mime == "application/pdf"
         ):
+            return self._items.get("libreoffice")
+        if input_mime == "application/pdf" and output_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             return self._items.get("libreoffice")
         if input_mime.startswith("image/") and output_mime.startswith("image/"):
             return self._items.get("pillow")
@@ -54,62 +57,87 @@ def converter(*, name: str):
         return obj
     return decorator
 
-_EXTENSION_TO_MIME={
 
-".png":"image/png",
-".jpg":"image/jpeg",
-".jpeg":"image/jpeg",
-".gif":"image/gif",
-".bmp":"image/bmp",
-".webp":"image/webp",
-".tiff":"image/tiff",
-
-".pdf":"application/pdf",
-
-".doc":"application/msword",
-
-".docx":"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-
-".odt":"application/vnd.oasis.opendocument.text",
-
-".txt":"text/plain",
-
-".html":"text/html",
-
-".htm":"text/html",
-
+_EXTENSION_TO_MIME = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".bmp": "image/bmp",
+    ".webp": "image/webp",
+    ".tif": "image/tiff",
+    ".tiff": "image/tiff",
+    ".pdf": "application/pdf",
+    ".doc": "application/msword",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".odt": "application/vnd.oasis.opendocument.text",
+    ".txt": "text/plain",
+    ".html": "text/html",
+    ".htm": "text/html",
 }
 
 
-def mime_for(path:Path)->str:
-
-    ext=path.suffix.lower()
-
+def mime_for(path: Path) -> str:
+    """Return a MIME type for a file path."""
+    ext = path.suffix.lower()
     if ext in _EXTENSION_TO_MIME:
         return _EXTENSION_TO_MIME[ext]
-
-    guessed,_=mimetypes.guess_type(path)
-
+    guessed, _ = mimetypes.guess_type(str(path))
     return guessed or "application/octet-stream"
+
 
 class ConversionManager:
     """Plan and execute file conversions."""
-    
-    def __init__(self)->None:
+
+    def __init__(self) -> None:
         self.registry = REGISTRY
-        self.default_output_dir = Path.home()/"Documents"/"FileConv"
-    
-    def _pick_converter(self, input_path: Path, to: str) -> str:
-        suffix = input_path.suffix.lower()
-        target = to.lower().lstrip(".")
-        if suffix == ".docx" and target == "pdf":
-            return "libreoffice"
-        if suffix in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tif", ".tiff"}:
-            return "pillow"
-        return "unknown"
+        self.default_output_dir = Path.home() / "Documents" / "FileConv"
+
+    def _build_output_path(self, input_path: Path, output_path: Path | None, to: str) -> Path:
+        if output_path is not None:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            return output_path
+        self.default_output_dir.mkdir(parents=True, exist_ok=True)
+        return self.default_output_dir / f"{input_path.stem}.{to.lstrip('.')}"
+
+    def _find_converter(self, input_path: Path, output_path: Path) -> ConverterSpec:
+        input_mime = mime_for(input_path)
+        output_mime = mime_for(output_path)
+        converter = self.registry.resolve(input_mime, output_mime)
+        if converter is None:
+            raise FileConvError(f"No converter found for {input_mime} -> {output_mime}")
+        return converter
+
+    def _run_libreoffice(self, input_path: Path, output_path: Path) -> Path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        out_ext = output_path.suffix.lower().lstrip(".")
+        cmd = [
+            "libreoffice",
+            "--headless",
+            "--convert-to",
+            out_ext,
+            "--outdir",
+            str(output_path.parent),
+            str(input_path),
+        ]
+        if input_path.suffix.lower() == ".pdf" and out_ext in {"doc", "docx"}:
+            cmd.insert(2, "--infilter=writer_pdf_import")
+        subprocess.run(cmd, check=True)
+
+        produced = output_path.parent / f"{input_path.stem}.{out_ext}"
+        if produced.exists() and produced != output_path:
+            produced.replace(output_path)
+
+        if not output_path.exists():
+            raise FileConvError(f"LibreOffice did not create output file: {output_path}")
+
+        return output_path
 
     def dry_run(self, input_path: Path, to: str) -> str:
-        return self._pick_converter(input_path, to)
+        input_mime = mime_for(input_path)
+        output_mime = mime_for(Path(f"dummy.{to.lstrip('.')}"))
+        spec = self.registry.resolve(input_mime, output_mime)
+        return spec.name if spec else "unknown"
 
     def doctor(self) -> dict[str, Any]:
         try:
@@ -119,72 +147,30 @@ class ConversionManager:
             magic_available = False
 
         return {
-            "format_detection": {
-                "magic_available": magic_available,
-            },
-            "entry_points": {
-                "group": "fileconv.converters",
-            },
+            "format_detection": {"magic_available": magic_available},
+            "entry_points": {"group": "fileconv.converters"},
         }
-    
-    def _build_output_path(
-        self,
-        input_path: Path,
-        output_path: Path | None,
-        to: str,
-    ) -> Path:
-        if output_path is not None:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            return output_path
 
-        self.default_output_dir.mkdir(parents=True, exist_ok=True)
-        return self.default_output_dir / f"{input_path.stem}.{to.lstrip('.')}"
+    def convert(self, input_path: Path, to: str, output_path: Path | None = None) -> Path:
+        output_path = self._build_output_path(input_path, output_path, to)
+        converter = self._find_converter(input_path, output_path)
 
-    def _find_converter(
-        self,
-        input_path: Path,
-        output_path: Path,
-    ) -> ConverterSpec:
-        input_mime = mime_for(input_path)
-        output_mime = mime_for(output_path)
-
-        converter = self.registry.resolve(
-            input_mime,
-            output_mime,
-        )
-        if converter is None:
-            raise RuntimeError(
-                f"No converter found for {input_mime} -> {output_mime}"
-            )
-        return converter
-
-    def convert(
-        self,
-        input_path: Path,
-        to: str,
-        output_path: Path | None = None,
-    ) -> Path:
-        output_path = self._build_output_path(
-            input_path,
-            output_path,
-            to,
-        )
-
-        converter = self._find_converter(
-            input_path,
-            output_path,
-        )
+        if converter.name == "libreoffice":
+            return self._run_libreoffice(input_path, output_path)
 
         handler: Any = converter.handler
         if isinstance(handler, type):
             handler = handler()
 
         if hasattr(handler, "convert"):
-            handler.convert(input_path, output_path)
+            result = handler.convert(input_path, output_path)
         else:
-            handler(input_path, output_path)
+            result = handler(input_path, output_path)
 
-        return output_path
+        final_path = result if isinstance(result, Path) else output_path
+        if not final_path.exists():
+            raise FileConvError(f"Converter {converter.name} did not write output file: {final_path}")
+        return final_path
 
     def convert_many(
         self,
@@ -200,6 +186,7 @@ class ConversionManager:
         started = time.perf_counter()
         results: list[dict[str, Any]] = []
         planned = ok = skipped = failed = 0
+        output_root.mkdir(parents=True, exist_ok=True)
 
         for input_path in input_paths:
             output_path = output_root / f"{input_path.stem}.{to.lstrip('.')}"
