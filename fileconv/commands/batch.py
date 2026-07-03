@@ -1,3 +1,5 @@
+"""Batch conversion command for FileConv."""
+
 from __future__ import annotations
 
 import json

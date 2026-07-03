@@ -1,3 +1,3 @@
-from .core import ConversionManager #ConverterRegistry, converter
+from .core import ConversionManager, Registry #ConverterRegistry, converter
 
-__all__ = ["ConversionManager"]
+__all__ = ["ConversionManager", "Registry"]

@@ -1,12 +1,12 @@
 from pathlib import Path
 
-#import fileconv.converters.image  # noqa: F401 - ensures decorator registration runs
+import fileconv.converters.image  # noqa: F401 - needed to trigger decorator registration
 from fileconv.core import ConversionManager, REGISTRY
 
 
 def test_registry_has_builtin_converter():
-    names = [cls.name for cls in REGISTRY.list()]
-    assert "libreoffice" in names or "pillow" in names
+    names = [spec.name for spec in REGISTRY.list()]
+    assert "pillow" in names
 
 
 def test_dry_run_for_docx_to_pdf():

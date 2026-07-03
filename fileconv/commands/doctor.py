@@ -1,3 +1,5 @@
+"""Environment diagnostics command for FileConv."""
+
 from __future__ import annotations
 
 import shutil

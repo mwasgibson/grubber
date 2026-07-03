@@ -9,8 +9,11 @@ from ..core import converter
 from ..errors import DependencyMissingError
 
 
-@converter(name="libreoffice", priority=10)
+@converter(name="libreoffice")
 class LibreOfficeConverter:
+    name = "libreoffice"
+    priority = 0
+
     supported_input_mimes = {
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/msword",

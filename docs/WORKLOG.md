@@ -325,3 +325,16 @@ Add an image format conversion plugin for raster formats like PNG, JPG, WebP, BM
 - Root CLI owns version and shell completion behavior.
 - Command groups are organized one file per concern.
 - README and architecture docs should match the command list exactly.
+
+## 2026-07-03 - Full CLI and converter cleanup
+### What changed
+- Restored registry support in core.py.
+- Rewrote the image converter to use Pillow for real conversions.
+- Flattened the CLI command registration.
+- Updated registry and CLI tests to match the current command layout.
+- Replaced stub converter behavior with actual image processing.
+
+### Notes
+- The image converter now handles JPEG alpha conversion safely by converting to RGB first.
+- Registry tests import the converter module so decorator registration runs.
+- Batch and doctor commands remain wired through the core manager.
