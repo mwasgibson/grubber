@@ -6,8 +6,14 @@ from pathlib import Path
 from typing import Any
 
 from ..core import converter
-from ..errors import DependencyMissingError
+from ..errors import DependencyMissingError, FileConvError
 
+def find_libreoffice_binary() -> str | None:
+        for candidate in ("libreoffice", "soffice", "soffice.com"):
+            path = shutil.which(candidate)
+            if path:
+                return path
+        return None
 
 @converter(name="libreoffice")
 class LibreOfficeConverter:
@@ -48,31 +54,35 @@ class LibreOfficeConverter:
         *,
         options: dict[str, Any] | None = None,
     ) -> Path:
-        binary = shutil.which("libreoffice") or shutil.which("soffice")
+        binary = find_libreoffice_binary()
         if binary is None:
             raise DependencyMissingError("LibreOffice binary not found")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        outdir = output_path.parent
-        target_ext = output_path.suffix.lstrip(".")
+        out_ext = output_path.suffix.lower().lstrip(".")
 
-        subprocess.run(
-            [
-                binary,
-                "--headless",
-                "--convert-to",
-                target_ext,
-                "--outdir",
-                str(outdir),
-                str(input_path),
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        cmd = [
+            binary,
+            "--headless",
+            "--convert-to",
+            out_ext,
+            "--outdir",
+            str(output_path.parent),
+            str(input_path),
+        ]
 
-        produced = outdir / f"{input_path.stem}.{target_ext}"
-        if produced != output_path and produced.exists():
+        # Special handling: PDF → DOC/DOCX often needs the PDF import filter
+        if input_path.suffix.lower() == ".pdf" and out_ext in {"doc", "docx"}:
+            cmd.insert(2, "--infilter=writer_pdf_import")
+
+        subprocess.run(cmd, check=True)
+
+        # LibreOffice writes to <stem>.<out_ext> in the outdir
+        produced = output_path.parent / f"{input_path.stem}.{out_ext}"
+        if produced.exists() and produced != output_path:
             produced.replace(output_path)
+
+        if not output_path.exists():
+            raise FileConvError(f"LibreOffice did not create output file: {output_path}")
 
         return output_path

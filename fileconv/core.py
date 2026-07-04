@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import mimetypes
-import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,19 +34,19 @@ class Registry:
         return self._items[name]
 
     def resolve(self, input_mime: str, output_mime: str) -> ConverterSpec | None:
-       if (
+        if (
         input_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         and output_mime == "application/pdf"
         ):
-        return self._items.get("libreoffice")
-       if (
+            return self._items.get("libreoffice")
+        if (
         input_mime == "application/pdf"
         and output_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-       ):
-        return self._items.get("libreoffice")
-       if input_mime.startswith("image/") and output_mime.startswith("image/"):
-        return self._items.get("pillow")
-       return None
+        ):
+            return self._items.get("libreoffice")
+        if input_mime.startswith("image/") and output_mime.startswith("image/"):
+            return self._items.get("pillow")
+        return None
 
 
 REGISTRY = Registry()
@@ -111,31 +110,6 @@ class ConversionManager:
             raise FileConvError(f"No converter found for {input_mime} -> {output_mime}")
         return converter
 
-    def _run_libreoffice(self, input_path: Path, output_path: Path) -> Path:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        out_ext = output_path.suffix.lower().lstrip(".")
-        cmd = [
-            "libreoffice",
-            "--headless",
-            "--convert-to",
-            out_ext,
-            "--outdir",
-            str(output_path.parent),
-            str(input_path),
-        ]
-        if input_path.suffix.lower() == ".pdf" and out_ext in {"doc", "docx"}:
-            cmd.insert(2, "--infilter=writer_pdf_import")
-        subprocess.run(cmd, check=True)
-
-        produced = output_path.parent / f"{input_path.stem}.{out_ext}"
-        if produced.exists() and produced != output_path:
-            produced.replace(output_path)
-
-        if not output_path.exists():
-            raise FileConvError(f"LibreOffice did not create output file: {output_path}")
-
-        return output_path
-
     def dry_run(self, input_path: Path, to: str) -> str:
         input_mime = mime_for(input_path)
         output_mime = mime_for(Path(f"dummy.{to.lstrip('.')}"))
@@ -157,9 +131,6 @@ class ConversionManager:
     def convert(self, input_path: Path, to: str, output_path: Path | None = None) -> Path:
         output_path = self._build_output_path(input_path, output_path, to)
         converter = self._find_converter(input_path, output_path)
-
-        if converter.name == "libreoffice":
-            return self._run_libreoffice(input_path, output_path)
 
         handler: Any = converter.handler
         if isinstance(handler, type):
