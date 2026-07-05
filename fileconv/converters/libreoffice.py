@@ -61,9 +61,14 @@ class LibreOfficeConverter:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         out_ext = output_path.suffix.lower().lstrip(".")
 
+        import tempfile
+        profile_dir = tempfile.mkdtemp(prefix="fileconv-lo-profile-")
+
         cmd = [
             binary,
             "--headless",
+            "--norestore",
+            f"-env:UserInstallation=file://{profile_dir}",
             "--convert-to",
             out_ext,
             "--outdir",

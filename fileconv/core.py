@@ -43,7 +43,7 @@ class Registry:
         input_mime == "application/pdf"
         and output_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         ):
-            return self._items.get("libreoffice")
+            return self._items.get("pdf2docx")
         if input_mime.startswith("image/") and output_mime.startswith("image/"):
             return self._items.get("pillow")
         return None
