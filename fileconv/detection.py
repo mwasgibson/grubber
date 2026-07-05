@@ -55,7 +55,8 @@ def _detect_mime_with_magic(path: Path) -> str | None:
 
     try:
         detector = magic.Magic(mime=True)
-        return detector.from_file(str(path))
+        result = detector.from_file(str(path))  # type: ignore[reportUnknownMemberType]
+        return str(result) if result else None
     except Exception:
         return None
 

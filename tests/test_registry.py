@@ -1,7 +1,9 @@
 from pathlib import Path
 
-import fileconv.converters.image  # noqa: F401 - needed to trigger decorator registration
-from fileconv.core import ConversionManager, REGISTRY
+import importlib
+
+importlib.import_module("fileconv.converters.image")
+from fileconv.core import REGISTRY, ConversionManager
 
 
 def test_registry_has_builtin_converter():

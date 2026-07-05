@@ -1,5 +1,3 @@
-"""Root CLI entrypoint for FileConv."""
-
 from __future__ import annotations
 
 import typer

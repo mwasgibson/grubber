@@ -1,5 +1,3 @@
-"""Image converter implementation for FileConv."""
-
 from __future__ import annotations
 
 from pathlib import Path
