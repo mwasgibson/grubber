@@ -1,109 +1,112 @@
 # FileConv
 
-FileConv is a batch file conversion CLI with dry-run support, JSON export, and recursive output tree preservation.
+[![Release](https://img.shields.io/github/v/tag/your-username/fileconv?label=release)](https://github.com/your-username/fileconv/releases)
+[![License](https://img.shields.io/github/license/your-username/fileconv)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![Status](https://img.shields.io/badge/status-active-brightgreen)](https://github.com/your-username/fileconv)
 
-## Features
+FileConv is a lightweight command-line tool for converting files between supported formats using pluggable backends such as LibreOffice, pdf2docx, and Pillow.
 
-- Convert files in batch.
-- Preview planned output with dry-run.
-- Export dry-run and batch results as JSON.
-- Keep nested input folders mirrored in the output tree.
-- Switch between human-readable and machine-readable output with `--format`.
+## Highlights
 
-## Usage
+- Routes conversions through a MIME-based registry.
+- Uses LibreOffice for office document conversions.
+- Uses pdf2docx for PDF to DOCX conversion.
+- Supports image conversions through Pillow.
+- Includes a doctor command for environment validation.
 
-Convert one file:
+## Installation
 
-```bash
-fileconv convert input.png --to webp --out-dir out
-```
-
-Preview a batch run:
-
-```bash
-fileconv batch images --to webp --out-dir out --recursive --dry-run
-```
-
-Export the plan as JSON:
+Install from PyPI:
 
 ```bash
-fileconv batch images --to webp --out-dir out --recursive --dry-run --format json
+pip install grubber
 ```
 
-Pipe JSON into scripts:
+For local development:
 
 ```bash
-fileconv batch images --to webp --out-dir out --recursive --dry-run --format json | jq '.counts'
+pip install -e .
 ```
 
-Human-readable output is the default:
+## Quickstart
+
+Convert a PDF to DOCX:
 
 ```bash
-fileconv batch images --to webp --out-dir out --recursive --format text
+fileconv convert input.pdf --to docx
 ```
 
-## Output format
-
-- `text` is for terminal use.
-- `json` is for scripts and automation.
-- In JSON mode, stdout contains only JSON.
-- Progress, summaries, and diagnostics stay on stderr.
-
-## JSON export
-
-The JSON export includes:
-
-- `mode`
-- `format`
-- `counts`
-- `elapsed_seconds`
-- `results`
-
-Each result item includes:
-
-- `input`
-- `output`
-- `status`
-- `reason`
-
-## Behavior
-
-- `--dry-run` calculates the planned output tree without writing files.
-- `--recursive` preserves subfolder structure under the output directory.
-- `--overwrite` allows replacing existing outputs.
-
-## Commands
-
-- `fileconv batch` — batch conversion with dry-run and JSON output.
-- `fileconv convert` — convert one file.
-- `fileconv doctor` — check environment readiness.
-- `fileconv inspect` — inspect inputs and planned outputs.
-- `fileconv --version` — print the installed version.
-- `fileconv --install-completion` — install shell completion.
-- `fileconv --show-completion` — print the completion script.
-
-## Usage
-
-Dry-run in text mode:
+Convert a DOCX to PDF:
 
 ```bash
-fileconv batch images --to webp --out-dir out --recursive --dry-run
+fileconv convert input.docx --to pdf
 ```
 
-Dry-run in JSON mode:
-
-```bash
-fileconv batch images --to webp --out-dir out --recursive --dry-run --format json
-```
-
-Run doctor:
+Check your setup:
 
 ```bash
 fileconv doctor
 ```
 
-Print version:
+## CLI options
+
+### convert
 
 ```bash
-fileconv --version
+fileconv convert <input-file> --to <format> [--output <path>]
 ```
+
+Common options:
+
+- `--to`: output format to convert into.
+- `--output`: optional output file path.
+- `--overwrite`: replace an existing output file when supported.
+- `--dry-run`: show what would be converted without writing files.
+- `--recursive`: process files recursively from a directory when supported.
+
+### doctor
+
+```bash
+fileconv doctor
+```
+
+Use this command to check whether FileConv can find the installed conversion tools and dependencies.
+
+## Supported converters
+
+- `libreoffice`: Office-to-office conversions such as DOCX to PDF.
+- `pdf2docx`: PDF to DOCX conversion.
+- `pillow`: Image conversions.
+
+## How it works
+
+FileConv uses three layers:
+
+1. The **registry** stores available converters.
+2. The **resolver** matches input and output MIME types.
+3. The **converter class** performs the conversion.
+
+This keeps routing separate from implementation and makes it easier to add new backends later.
+
+## Release notes
+
+### v0.1.0
+
+- Initial release of FileConv.
+- Added converter registry and MIME-based routing.
+- Added LibreOffice-based conversion support.
+- Added pdf2docx support for PDF to DOCX.
+- Added doctor command for environment validation.
+
+For full release history, see [CHANGELOG.md](CHANGELOG.md).
+
+## Contributing
+
+Contributions are welcome. Please open an issue before larger changes, keep pull requests focused, and update tests or docs when behavior changes. New converters must be imported so they register correctly.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## License
+
+Released under the MIT License. See [LICENSE](LICENSE).
