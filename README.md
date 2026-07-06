@@ -1,6 +1,6 @@
 # FileConv
 
-[![License](https://img.shields.io/github/license/your-username)](LICENSE)
+[![License](https://img.shields.io/github/license/your-username/fileconv)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](https://github.com/your-username/fileconv)
 
