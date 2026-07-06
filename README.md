@@ -1,7 +1,7 @@
 # FileConv
 
-[![Release](https://img.shields.io/github/v/tag/your-username/fileconv?label=release)](https://github.com/your-username/fileconv/releases)
-[![License](https://img.shields.io/github/license/your-username/fileconv)](LICENSE)
+[![Changelog](https://img.shields.io/github/v/tag/your-username/fileconv?label=release)](https://github.com/your-username/fileconv/CHANGELOG)
+[![License](https://img.shields.io/github/license/your-username)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![Status](https://img.shields.io/badge/status-active-brightgreen)](https://github.com/your-username/fileconv)
 
