@@ -13,7 +13,7 @@ exclude = ["source*", "tests*"]
 fileconv = ["py.typed"]
 
 [project]
-name = "ggrubber-fileconv"
+name = "grubber-fileconv"
 version = "0.1.0"
 description = "Extensible local file converter with plugin registry"
 requires-python = ">=3.11"
