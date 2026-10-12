@@ -46,7 +46,6 @@ def convert(
     try:
         output_path: Path | None = output
         if output_path is None and out_dir is not None:
-            out_dir.mkdir(parents=True, exist_ok=True)
             output_path = out_dir / f"{input_path.stem}.{to.lstrip('.')}"
 
         result = manager.convert(

@@ -139,10 +139,9 @@ def batch(
     ~/.config/fileconv/config.toml when present.
     """
     try:
-        out_dir.mkdir(parents=True, exist_ok=True)
+        if not dry_run:
+            out_dir.mkdir(parents=True, exist_ok=True)
 
-        # Resolve progress: explicit CLI wins; otherwise leave None for config
-        # (JSON mode still forces progress off for clean stdout).
         if output_format == OutputFormat.json:
             show_progress: bool | None = False
         elif no_progress is True:
