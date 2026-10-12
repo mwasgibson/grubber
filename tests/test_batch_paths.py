@@ -60,3 +60,41 @@ def test_convert_many_dry_run(tmp_path: Path):
     assert payload["counts"]["planned"] == 1
     assert payload["counts"]["total"] == 1
     assert payload["results"][0]["status"] == "planned"
+
+
+def test_convert_many_excludes_output_tree(tmp_path: Path):
+    """Files already under output_root must not be picked up as inputs."""
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.png").write_bytes(b"x")
+    out = src / "converted"
+    out.mkdir()
+    (out / "prior.jpg").write_bytes(b"y")
+
+    manager = ConversionManager()
+    payload = manager.convert_many(
+        [src],
+        "jpg",
+        output_root=out,
+        recursive=True,
+        dry_run=True,
+    )
+    inputs = [r["input"] for r in payload["results"]]
+    assert any(Path(i).name == "a.png" for i in inputs)
+    assert not any("prior.jpg" in i for i in inputs)
+    assert not any("converted" in Path(i).parts and Path(i).name == "prior.jpg" for i in inputs)
+
+
+def test_is_under_helper(tmp_path: Path):
+    from fileconv.core import is_under
+
+    root = tmp_path / "out"
+    root.mkdir()
+    nested = root / "nested" / "f.jpg"
+    nested.parent.mkdir(parents=True)
+    nested.write_bytes(b"z")
+    outside = tmp_path / "other.jpg"
+    outside.write_bytes(b"z")
+    assert is_under(nested, root) is True
+    assert is_under(root, root) is True
+    assert is_under(outside, root) is False
