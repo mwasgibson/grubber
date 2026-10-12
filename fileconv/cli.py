@@ -1,3 +1,5 @@
+"""Root Typer application for FileConv."""
+
 from __future__ import annotations
 
 import typer
@@ -8,7 +10,13 @@ from .commands.doctor import doctor
 from .commands.inspect import inspect
 from .version import __version__
 
-app = typer.Typer(add_completion=True, no_args_is_help=True)
+app = typer.Typer(
+    name="fileconv",
+    help="FileConv – extensible local file converter (LibreOffice, pdf2docx, Pillow).",
+    add_completion=True,
+    no_args_is_help=True,
+    rich_markup_mode="rich",
+)
 
 
 def version_callback(value: bool) -> None:
@@ -22,16 +30,17 @@ def main(
     version: bool = typer.Option(
         False,
         "--version",
+        "-V",
         callback=version_callback,
         is_eager=True,
         help="Show the installed version and exit.",
     ),
-):
-    """FileConv: batch file conversion with dry-run, JSON export, and environment checks."""
+) -> None:
+    """FileConv: batch file conversion with dry-run, JSON export, filters, and parallel jobs."""
     pass
 
 
-app.command(name="batch")(batch)
 app.command(name="convert")(convert)
+app.command(name="batch")(batch)
 app.command(name="doctor")(doctor)
 app.command(name="inspect")(inspect)
