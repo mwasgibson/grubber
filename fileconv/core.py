@@ -206,6 +206,49 @@ def is_under(path: Path, root: Path) -> bool:
         return False
 
 
+def normalize_ext(token: str) -> str:
+    """Normalize an extension token (with or without dot) to lowercase '.ext'."""
+    t = token.lower().lstrip(".")
+    if t == "jpeg":
+        t = "jpg"
+    return f".{t}" if t else ""
+
+
+def extensions_equivalent(a: str, b: str) -> bool:
+    return normalize_ext(a) == normalize_ext(b)
+
+
+def disambiguate_outputs(
+    work: list[tuple[Path, Path]], to: str
+) -> list[tuple[Path, Path]]:
+    """Ensure each input maps to a unique output path.
+
+    When multiple sources would write the same destination (e.g. photo.png and
+    photo.webp both targeting jpg -> photo.jpg), rewrite colliding destinations
+    to include the source extension: photo.png.jpg, photo.webp.jpg.
+    """
+    from collections import defaultdict
+
+    by_out: dict[Path, list[Path]] = defaultdict(list)
+    for src, out in work:
+        by_out[out].append(src)
+
+    if all(len(srcs) == 1 for srcs in by_out.values()):
+        return work
+
+    to_ext = to.lstrip(".")
+    rewritten: dict[Path, Path] = {}
+    for out, srcs in by_out.items():
+        if len(srcs) == 1:
+            continue
+        for src in srcs:
+            src_ext = src.suffix.lstrip(".") or "bin"
+            new_name = f"{src.stem}.{src_ext}.{to_ext}"
+            rewritten[src] = out.parent / new_name
+
+    return [(src, rewritten.get(src, out)) for src, out in work]
+
+
 class ConversionManager:
     """Plan and execute file conversions."""
 
@@ -224,16 +267,13 @@ class ConversionManager:
         output_root: Path | None = None,
         input_root: Path | None = None,
     ) -> Path:
+        """Compute the destination path without creating directories."""
         if output_path is not None:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
             return output_path
         if output_root is not None:
             root = input_root or input_path.parent
-            out = relative_output_path(input_path, root, output_root, to)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            return out
+            return relative_output_path(input_path, root, output_root, to)
         default_dir = self.config.default_output_dir
-        default_dir.mkdir(parents=True, exist_ok=True)
         return default_dir / f"{input_path.stem}.{to.lstrip('.')}"
 
     def _find_converter(self, input_path: Path, output_path: Path) -> ConverterSpec:
@@ -320,12 +360,24 @@ class ConversionManager:
         options: dict[str, Any] | None = None,
     ) -> Path:
         overwrite = self.config.overwrite if overwrite is None else overwrite
+
+        # Explicit --output must match the requested --to format.
+        if output_path is not None and output_path.suffix:
+            if not extensions_equivalent(output_path.suffix, to):
+                raise FileConvError(
+                    f"Output extension {output_path.suffix!r} does not match "
+                    f"requested target format {to!r}. Use a matching suffix "
+                    f"(e.g. --output result.{to.lstrip('.')}) or omit --output."
+                )
+
         output_path = self._build_output_path(input_path, to, output_path=output_path)
 
         if output_path.exists() and not overwrite:
             raise FileConvError(
                 f"Output already exists (use --overwrite): {output_path}"
             )
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
         converter = self._find_converter(input_path, output_path)
         handler: Any = converter.handler
@@ -429,7 +481,8 @@ class ConversionManager:
         files = unique_files
 
         output_root = output_root.resolve()
-        output_root.mkdir(parents=True, exist_ok=True)
+        if not dry_run:
+            output_root.mkdir(parents=True, exist_ok=True)
 
         # Skip files already under the output tree so resumed recursive batches
         # do not re-ingest prior outputs (nested converted/converted/...).
@@ -447,6 +500,8 @@ class ConversionManager:
                     continue
             out = relative_output_path(f, input_root, output_root, to)
             work.append((f, out))
+
+        work = disambiguate_outputs(work, to)
 
         results: list[dict[str, Any]] = []
         planned = ok = skipped = failed = 0
