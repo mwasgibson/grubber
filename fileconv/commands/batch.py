@@ -6,7 +6,7 @@ import json
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import typer
 
@@ -86,23 +86,23 @@ def batch(
         "-o",
         help="Root directory for converted files (mirrors input tree when recursive).",
     ),
-    recursive: bool = typer.Option(
-        False,
-        "--recursive",
+    recursive: Optional[bool] = typer.Option(
+        None,
+        "--recursive/--no-recursive",
         "-r",
-        help="Process files under subdirectories.",
+        help="Process files under subdirectories. Default: config or false.",
     ),
-    overwrite: bool = typer.Option(
-        False,
-        "--overwrite",
-        help="Replace existing output files.",
+    overwrite: Optional[bool] = typer.Option(
+        None,
+        "--overwrite/--no-overwrite",
+        help="Replace existing output files. Default: config or false.",
     ),
-    jobs: int = typer.Option(
-        1,
+    jobs: Optional[int] = typer.Option(
+        None,
         "--jobs",
         "-j",
         min=1,
-        help="Number of parallel conversion workers.",
+        help="Number of parallel conversion workers. Default: config or 1.",
     ),
     include: list[str] = typer.Option(
         None,
@@ -116,10 +116,10 @@ def batch(
         "-e",
         help="Skip files matching these globs (repeatable).",
     ),
-    no_progress: bool = typer.Option(
-        False,
-        "--no-progress",
-        help="Disable the progress bar.",
+    no_progress: Optional[bool] = typer.Option(
+        None,
+        "--no-progress/--progress",
+        help="Disable/enable the progress bar. Default: config or enabled for text.",
     ),
     dry_run: bool = typer.Option(
         False,
@@ -133,16 +133,32 @@ def batch(
         help="Output format: text (default) or json.",
     ),
 ) -> None:
-    """Convert many files. Supports recursion, filters, parallel jobs, and JSON export."""
+    """Convert many files. Supports recursion, filters, parallel jobs, and JSON export.
+
+    Unspecified flags (recursive, overwrite, jobs, progress) inherit from
+    ~/.config/fileconv/config.toml when present.
+    """
     try:
         out_dir.mkdir(parents=True, exist_ok=True)
+
+        # Resolve progress: explicit CLI wins; otherwise leave None for config
+        # (JSON mode still forces progress off for clean stdout).
+        if output_format == OutputFormat.json:
+            show_progress: bool | None = False
+        elif no_progress is True:
+            show_progress = False
+        elif no_progress is False:
+            show_progress = True
+        else:
+            show_progress = None
+
         payload = manager.convert_many(
             [input_path],
             to,
             output_root=out_dir,
             recursive=recursive,
             overwrite=overwrite,
-            show_progress=not no_progress and output_format == OutputFormat.text,
+            show_progress=show_progress,
             dry_run=dry_run,
             jobs=jobs,
             include=include or None,
