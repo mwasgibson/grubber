@@ -98,3 +98,52 @@ def test_is_under_helper(tmp_path: Path):
     assert is_under(nested, root) is True
     assert is_under(root, root) is True
     assert is_under(outside, root) is False
+
+
+def test_dry_run_does_not_create_output_dir(tmp_path: Path):
+    src = tmp_path / "img.png"
+    src.write_bytes(b"x")
+    out = tmp_path / "does_not_exist_yet"
+    manager = ConversionManager()
+    payload = manager.convert_many(
+        [src],
+        "jpg",
+        output_root=out,
+        dry_run=True,
+    )
+    assert payload["counts"]["planned"] == 1
+    assert not out.exists()
+
+
+def test_disambiguate_colliding_stems(tmp_path: Path):
+    from fileconv.core import disambiguate_outputs
+
+    src_a = tmp_path / "photo.png"
+    src_b = tmp_path / "photo.webp"
+    out_a = tmp_path / "out" / "photo.jpg"
+    out_b = tmp_path / "out" / "photo.jpg"
+    work = [(src_a, out_a), (src_b, out_b)]
+    result = disambiguate_outputs(work, "jpg")
+    outs = {p for _, p in result}
+    assert len(outs) == 2
+    names = {p.name for p in outs}
+    assert "photo.png.jpg" in names
+    assert "photo.webp.jpg" in names
+
+
+def test_convert_many_disambiguates_collisions(tmp_path: Path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "photo.png").write_bytes(b"x")
+    (src / "photo.webp").write_bytes(b"y")
+    out = tmp_path / "out"
+    manager = ConversionManager()
+    payload = manager.convert_many(
+        [src],
+        "jpg",
+        output_root=out,
+        dry_run=True,
+    )
+    outputs = [r["output"] for r in payload["results"]]
+    assert len(outputs) == 2
+    assert len(set(outputs)) == 2
