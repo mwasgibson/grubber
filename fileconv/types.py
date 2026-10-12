@@ -1,9 +1,15 @@
+"""Shared types and protocols for FileConv."""
+
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
 class ConverterProtocol(Protocol):
+    """Contract every converter must satisfy."""
+
     name: str
     priority: int
 

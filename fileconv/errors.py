@@ -1,3 +1,6 @@
+"""Domain errors for FileConv."""
+
+
 class FileConvError(Exception):
     """Base error for the converter app."""
 
@@ -8,3 +11,7 @@ class UnsupportedConversionError(FileConvError):
 
 class DependencyMissingError(FileConvError):
     """Raised when an external binary or library is not available."""
+
+
+class ConfigError(FileConvError):
+    """Raised when configuration is invalid or missing."""
