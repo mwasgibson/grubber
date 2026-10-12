@@ -197,6 +197,15 @@ def relative_output_path(input_path: Path, input_root: Path, output_root: Path, 
     return output_root / f"{stem}.{to.lstrip('.')}"
 
 
+def is_under(path: Path, root: Path) -> bool:
+    """Return True if path is root or a descendant of root (after resolve)."""
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
 class ConversionManager:
     """Plan and execute file conversions."""
 
@@ -386,7 +395,7 @@ class ConversionManager:
         to: str,
         *,
         output_root: Path,
-        recursive: bool = False,
+        recursive: bool | None = None,
         overwrite: bool | None = None,
         show_progress: bool | None = None,
         dry_run: bool = False,
@@ -395,6 +404,7 @@ class ConversionManager:
         exclude: list[str] | None = None,
     ) -> dict[str, Any]:
         started = time.perf_counter()
+        recursive = self.config.recursive if recursive is None else recursive
         overwrite = self.config.overwrite if overwrite is None else overwrite
         show_progress = self.config.show_progress if show_progress is None else show_progress
         jobs = jobs if jobs is not None else max(1, self.config.jobs)
@@ -418,7 +428,12 @@ class ConversionManager:
                 unique_files.append(f)
         files = unique_files
 
+        output_root = output_root.resolve()
         output_root.mkdir(parents=True, exist_ok=True)
+
+        # Skip files already under the output tree so resumed recursive batches
+        # do not re-ingest prior outputs (nested converted/converted/...).
+        files = [f for f in files if not is_under(f, output_root)]
 
         work: list[tuple[Path, Path]] = []
         for f in files:
