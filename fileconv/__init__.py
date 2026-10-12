@@ -1,4 +1,7 @@
-from .core import ConversionManager, Registry
-from . import converters  # registers built-in converters via @converter
+"""FileConv – extensible local file converter."""
 
-__all__ = ["ConversionManager", "Registry", "converters"]
+from .core import ConversionManager, Registry, REGISTRY
+from . import converters  # registers built-in converters via @converter
+from .version import __version__
+
+__all__ = ["ConversionManager", "Registry", "REGISTRY", "converters", "__version__"]
